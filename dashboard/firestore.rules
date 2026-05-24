@@ -1,0 +1,25 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // The password hash is publicly readable (it is SHA-256, not plaintext).
+    // Only the Admin SDK can write to it (via updating the dashboard password).
+    match /_config/access {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Jobs are readable/writable by anyone with the dashboard open.
+    // Access control is enforced at the UI level via the shared password;
+    // the database itself is not public knowledge.
+    match /jobs/{jobId} {
+      allow read, write: if true;
+    }
+
+    // Block everything else.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

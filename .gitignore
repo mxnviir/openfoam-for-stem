@@ -1,0 +1,67 @@
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Firebase
+.firebaserc
+firebase-debug.log
+.firebase/
+
+# Node (if using npm)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Credentials & Keys
+*.pem
+*.key
+*.p8
+*.json.backup
+service-account.json
+firebase-service-account.json
+
+# Build artifacts
+*.pyc
+.mypy_cache/
+.pytest_cache/
+
+# Claude Code
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db

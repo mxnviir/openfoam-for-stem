@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blackwing CFD</title>
+<link rel="icon" type="image/x-icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root {
+    --bg:     #000000;
+    --bg1:    #0d0d0d;
+    --bg2:    #1a1a1a;
+    --bg3:    #252525;
+    --border: #2a2a2a;
+    --text:   #ffffff;
+    --text2:  #e8e8e8;
+    --text3:  #cccccc;
+    --mono:   'JetBrains Mono', monospace;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height:100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--bg3); }
+
+  /* ══ LOGIN ══ */
+  #login-screen {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg); z-index: 500;
+  }
+  .login-box {
+    width: 420px; background: var(--bg1);
+    border: 1px solid var(--border);
+    padding: 60px 52px;
+    display: flex; flex-direction: column; align-items: center; gap: 28px;
+  }
+  .login-wordmark {
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 0.35em; text-transform: uppercase; color: var(--text2);
+  }
+  .login-title {
+    font-size: 56px; font-weight: 900;
+    color: var(--text); letter-spacing: -0.02em; text-align: center;
+  }
+  .login-divider { width: 100%; height: 1px; background: var(--border); }
+  #password-input {
+    width: 100%;
+    padding: 18px 20px;
+    background: var(--bg2); border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono); font-size: 16px; font-weight: 500;
+    letter-spacing: 0.12em; outline: none; transition: border-color 0.15s;
+  }
+  #password-input::placeholder { color: #555; letter-spacing: 0.04em; }
+  #password-input:focus { border-color: var(--text2); }
+  #pw-submit-btn {
+    width: 100%;
+    padding: 18px 24px;
+    background: var(--text); border: 1px solid var(--text);
+    color: var(--bg);
+    font-family: var(--mono); font-size: 16px; font-weight: 700;
+    letter-spacing: 0.08em; cursor: pointer; transition: all 0.15s;
+  }
+  #pw-submit-btn:hover { background: var(--text2); border-color: var(--text2); }
+  #login-error {
+    font-size: 14px; color: #f87171; text-align: center; display: none;
+  }
+
+  /* ══ APP ══ */
+  #app { min-height: 100vh; display: none; flex-direction: column; }
+
+  .topbar {
+    height: 52px; background: var(--bg1);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 28px; gap: 20px;
+    flex-shrink: 0;
+  }
+  .topbar-logo { font-size: 22px; font-weight: 900; color: var(--text); letter-spacing: 0.04em; }
+  .topbar-sep { width: 1px; height: 22px; background: var(--border); }
+  .live-indicator {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: 0.12em;
+  }
+  .live-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #4ade80; animation: blink 2s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+  .user-chip { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); font-weight: 600; }
+  .user-chip img { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border); }
+  #signout-btn {
+    background: none; border: 1px solid var(--border); color: var(--text);
+    padding: 8px 16px; font-family: var(--mono); font-size: 13px; font-weight: 700;
+    letter-spacing: 0.08em; cursor: pointer; transition: all 0.15s;
+  }
+  #signout-btn:hover { border-color: var(--text2); color: var(--text); }
+
+  /* ══ MAIN LAYOUT — full screen ══ */
+  main {
+    padding: 28px 32px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .label {
+    font-size: 14px; font-weight: 800; color: var(--text);
+    letter-spacing: 0.25em; text-transform: uppercase; margin-bottom: 14px;
+  }
+
+  /* ══ STAT CARDS ══ */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 12px; margin-bottom: 32px;
+  }
+  .stat-card { background: var(--bg1); border: 1px solid var(--border); padding: 22px 26px; }
+  .stat-card-label {
+    font-size: 14px; font-weight: 800; color: var(--text);
+    letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 10px;
+  }
+  .stat-card-value {
+    font-size: 48px; font-weight: 900; color: var(--text); line-height: 1;
+  }
+  .stat-unit { font-size: 20px; font-weight: 600; color: var(--text2); margin-left: 4px; }
+
+  /* ══ TABLE — fills remaining space ══ */
+  .table-section { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .table-wrap {
+    background: var(--bg1); border: 1px solid var(--border);
+    flex: 1; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .table-head {
+    display: grid;
+    grid-template-columns: 2fr 180px 220px 130px 130px 160px 110px;
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    flex-shrink: 0;
+  }
+  .th {
+    font-size: 13px; font-weight: 800; color: var(--text);
+    letter-spacing: 0.18em; text-transform: uppercase;
+  }
+  #jobs-list { flex: 1; overflow-y: auto; }
+  .job-row {
+    display: grid;
+    grid-template-columns: 2fr 180px 220px 130px 130px 160px 110px;
+    padding: 18px 28px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer; transition: background 0.1s; align-items: center;
+  }
+  .job-row:last-child { border-bottom: none; }
+  .job-row:hover { background: var(--bg2); }
+  .job-name { font-size: 20px; font-weight: 800; color: var(--text); }
+  .job-val  { font-size: 18px; font-weight: 700; color: var(--text); }
+  .job-val.muted { color: var(--text2); }
+
+  /* badges */
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 800; letter-spacing: 0.08em;
+    padding: 6px 12px; border-radius: 2px; text-transform: uppercase;
+  }
+  .badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .badge-done    { color: #4ade80; background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.25); }
+  .badge-done    .badge-dot { background: #4ade80; }
+  .badge-running { color: #60a5fa; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.25); }
+  .badge-running .badge-dot { background: #60a5fa; animation: blink 1s infinite; }
+  .badge-queued  { color: #facc15; background: rgba(250,204,21,0.08); border: 1px solid rgba(250,204,21,0.2); }
+  .badge-queued  .badge-dot { background: #facc15; }
+  .badge-failed  { color: #f87171; background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); }
+  .badge-failed  .badge-dot { background: #f87171; }
+
+  /* ── PROGRESS ── */
+  .progress-block {
+    background: var(--bg2); border: 1px solid var(--border);
+    padding: 18px 22px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .progress-stages {
+    display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+  }
+  .stage-chip {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.1em;
+    padding: 5px 10px; border: 1px solid var(--border);
+    text-transform: uppercase; color: var(--text2);
+    background: var(--bg);
+  }
+  .stage-chip.active  { color: #60a5fa; border-color: #60a5fa; background: rgba(96,165,250,0.08); }
+  .stage-chip.done    { color: var(--text2); border-color: var(--bg3); background: var(--bg2); }
+  .progress-bar-wrap  { height: 3px; background: var(--bg3); width: 100%; }
+  .progress-bar-fill  { height: 100%; background: #60a5fa; transition: width 0.6s; }
+  .progress-meta {
+    font-size: 13px; font-weight: 700; color: var(--text2); letter-spacing: 0.05em;
+  }
+  .elapsed-timer { font-size: 13px; font-weight: 700; color: var(--text2); letter-spacing: 0.05em; }
+
+  .view-btn {
+    background: none; border: 1px solid var(--border); color: var(--text);
+    padding: 8px 18px; font-family: var(--mono); font-size: 13px; font-weight: 800;
+    letter-spacing: 0.1em; cursor: pointer; transition: all 0.12s; text-transform: uppercase;
+  }
+  .view-btn:hover { border-color: #60a5fa; color: #60a5fa; }
+  .cancel-btn {
+    background: none; border: 1px solid var(--border); color: var(--text2);
+    width: 32px; height: 32px; font-family: var(--mono); font-size: 14px;
+    font-weight: 800; cursor: pointer; transition: all 0.12s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cancel-btn:hover { border-color: #ff4444; color: #ff4444; }
+  .delete-btn {
+    background: none; border: 1px solid var(--border); color: var(--text2);
+    width: 32px; height: 32px; font-family: var(--mono); font-size: 13px;
+    font-weight: 800; cursor: pointer; transition: all 0.12s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .delete-btn:hover { border-color: #ff4444; color: #ff4444; }
+  .process-chip {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.1em;
+    padding: 4px 9px; border: 1px solid var(--border);
+    text-transform: uppercase; color: var(--text2); display: inline-block;
+  }
+  .process-chip.active { color: var(--text); border-color: var(--text); animation: blink 2s infinite; }
+
+  .empty-state {
+    padding: 80px 28px; text-align: center;
+    font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: 0.08em;
+  }
+
+  /* ══ DETAIL PANEL ══ */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    z-index: 100; display: none; backdrop-filter: blur(2px);
+  }
+  .overlay.open { display: block; }
+  .detail-panel {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: min(940px, 92vw);
+    background: var(--bg1); border-left: 1px solid var(--border);
+    z-index: 101; display: flex; flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.25s cubic-bezier(0.16,1,0.3,1);
+    overflow: hidden;
+  }
+  .detail-panel.open { transform: translateX(0); }
+  .detail-header {
+    height: 58px; padding: 0 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px;
+    flex-shrink: 0; background: var(--bg2);
+  }
+  .detail-title { font-size: 22px; font-weight: 900; color: var(--text); letter-spacing: 0.03em; }
+  .close-btn {
+    margin-left: auto; background: none;
+    border: 1px solid var(--border); color: var(--text);
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px; transition: all 0.12s;
+  }
+  .close-btn:hover { border-color: var(--text); color: var(--text); }
+  .detail-body {
+    flex: 1; overflow-y: auto; padding: 28px;
+    display: flex; flex-direction: column; gap: 22px;
+  }
+  .d-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+  .d-stat { background: var(--bg2); border: 1px solid var(--border); padding: 20px 24px; }
+  .d-stat-label {
+    font-size: 13px; font-weight: 800; color: var(--text);
+    letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 8px;
+  }
+  .d-stat-value { font-size: 36px; font-weight: 900; color: var(--text); line-height: 1; }
+  .d-stat-value .stat-unit { font-size: 18px; font-weight: 600; color: var(--text2); }
+  .drag-delta { font-size: 13px; font-weight: 700; margin-top: 6px; letter-spacing: 0.05em; }
+  .drag-delta.better { color: #4ade80; }
+  .drag-delta.worse  { color: #f87171; }
+  .drag-delta.same   { color: var(--text2); }
+
+  .chart-block { background: var(--bg2); border: 1px solid var(--border); padding: 22px 24px; }
+  .chart-label {
+    font-size: 14px; font-weight: 800; color: var(--text);
+    letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 16px;
+  }
+  canvas { width: 100% !important; }
+
+  .stl-block {
+    background: var(--bg2); border: 1px solid var(--border);
+    height: 500px; position: relative; overflow: hidden;
+  }
+  #stl-canvas { width: 100%; height: 100%; display: block; }
+  .stl-hint {
+    position: absolute; bottom: 12px; right: 14px;
+    font-size: 12px; font-weight: 700; color: var(--text2);
+    letter-spacing: 0.1em; pointer-events: none;
+  }
+  .stl-loading {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: 0.08em;
+  }
+
+  .downloads { display: flex; gap: 12px; }
+  .dl-btn {
+    display: flex; align-items: center; gap: 9px;
+    padding: 14px 22px; background: var(--bg2);
+    border: 1px solid var(--border); color: var(--text);
+    font-family: var(--mono); font-size: 14px; font-weight: 800;
+    letter-spacing: 0.08em; text-decoration: none; transition: all 0.12s;
+    text-transform: uppercase;
+  }
+  .dl-btn:hover { border-color: #60a5fa; color: #60a5fa; background: var(--bg3); }
+  .dl-btn svg { width: 14px; height: 14px; }
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-wordmark">EMPLOYEES ONLY</div>
+    <div class="login-title">Blackwing CFD</div>
+    <div class="login-divider"></div>
+    <input id="password-input" type="password" placeholder="Enter team password" autocomplete="current-password">
+    <button id="pw-submit-btn">ENTER</button>
+    <div id="login-error">Wrong password.</div>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">BLACKWING CFD</div>
+    <div class="topbar-sep"></div>
+    <div class="topbar-right">
+      <button id="signout-btn">Sign out</button>
+    </div>
+  </div>
+
+  <main>
+    <div class="label">Fleet Status</div>
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-card-label">Total Runs</div>
+        <div class="stat-card-value" id="stat-total">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Running</div>
+        <div class="stat-card-value" id="stat-running">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Best Drag</div>
+        <div class="stat-card-value" id="stat-drag">—<span class="stat-unit">N</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Drag Δ vs Prev</div>
+        <div class="stat-card-value" id="stat-delta">—<span class="stat-unit">N</span></div>
+      </div>
+    </div>
+
+    <div class="table-section">
+    <div class="label">Simulation Runs</div>
+    <div class="table-wrap">
+      <div class="table-head">
+        <div class="th">Run Name</div>
+        <div class="th">Status</div>
+        <div class="th">Process</div>
+        <div class="th">Drag (N)</div>
+        <div class="th">Drag Δ</div>
+        <div class="th">p Residual</div>
+        <div class="th"></div>
+      </div>
+      <div id="jobs-list">
+        <div class="empty-state">No runs yet. Start a simulation to see results here.</div>
+      </div>
+    </div>
+    </div>
+  </main>
+</div>
+
+<!-- Detail panel -->
+<div class="overlay" id="overlay" onclick="closeDetail()"></div>
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-header">
+    <div class="detail-title" id="detail-title">Run Detail</div>
+    <button class="close-btn" onclick="closeDetail()">✕</button>
+  </div>
+  <div class="detail-body">
+    <div class="label" style="margin-bottom:10px">Car Geometry</div>
+    <div class="stl-block">
+      <div class="stl-loading" id="stl-loading">Loading geometry...</div>
+      <canvas id="stl-canvas"></canvas>
+      <div class="stl-hint">RIGHT CLICK: ROTATE · MIDDLE: PAN · SCROLL: ZOOM</div>
+    </div>
+
+    <div class="chart-block">
+      <div class="chart-label">Drag Force — Iteration</div>
+      <canvas id="forces-chart" height="200"></canvas>
+    </div>
+
+    <div class="chart-block">
+      <div class="chart-label">p Residual — Iteration (log scale)</div>
+      <canvas id="residual-chart" height="180"></canvas>
+    </div>
+
+    <div class="downloads">
+      <a class="dl-btn" id="dl-csv" href="#" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        results.csv
+      </a>
+      <a class="dl-btn" id="dl-stl" href="#" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        car_body.stl
+      </a>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, onSnapshot, doc, getDoc, updateDoc }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:            "YOUR_FIREBASE_API_KEY",
+  authDomain:        "YOUR_FIREBASE_PROJECT.firebaseapp.com",
+  projectId:         "YOUR_FIREBASE_PROJECT",
+  storageBucket:     "YOUR_FIREBASE_PROJECT.firebasestorage.app",
+  messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
+  appId:             "YOUR_FIREBASE_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+let jobs        = [];
+let forcesChart = null;
+let residualChart = null;
+let animFrameId = null;
+let unsubJobs   = null;
+
+// ── Password auth ────────────────────────────────────────────
+// The SHA-256 hash of the team password is stored in Firestore at
+// _config/access { passwordHash: "..." }.  Only that document is
+// publicly readable; everything else requires a successful login.
+// To change the password: run admin/set_password.py <newpassword>
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+// Rate-limit: max 5 attempts, 30-second lockout
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MS   = 30_000;
+let attemptCount = 0;
+let lockedUntil  = 0;
+
+if (sessionStorage.getItem("authed") === "1") {
+  showApp();
+} else {
+  showLogin();
+}
+
+function showLogin() {
+  document.getElementById("login-screen").style.display = "flex";
+  document.getElementById("app").style.display = "none";
+  if (unsubJobs) { unsubJobs(); unsubJobs = null; }
+}
+
+function showApp() {
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app").style.display = "flex";
+  startJobListener();
+}
+
+function setError(msg) {
+  const el = document.getElementById("login-error");
+  el.textContent = msg;
+  el.style.display = "block";
+}
+
+async function attemptLogin() {
+  const now = Date.now();
+  if (now < lockedUntil) {
+    const secs = Math.ceil((lockedUntil - now) / 1000);
+    setError(`Too many attempts. Try again in ${secs}s.`);
+    return;
+  }
+
+  const pw = document.getElementById("password-input").value;
+  document.getElementById("login-error").style.display = "none";
+  if (!pw) return;
+
+  const btn = document.getElementById("pw-submit-btn");
+  btn.disabled = true;
+  btn.textContent = "CHECKING...";
+
+  try {
+    const snap = await getDoc(doc(db, "_config", "access"));
+    const stored = snap.exists() ? snap.data().passwordHash : null;
+    const entered = await sha256(pw);
+
+    if (stored && entered === stored) {
+      attemptCount = 0;
+      sessionStorage.setItem("authed", "1");
+      showApp();
+    } else {
+      attemptCount++;
+      document.getElementById("password-input").value = "";
+      if (attemptCount >= MAX_ATTEMPTS) {
+        lockedUntil = Date.now() + LOCKOUT_MS;
+        attemptCount = 0;
+        setError(`Too many attempts. Locked for 30s.`);
+      } else {
+        setError(`Wrong password. ${MAX_ATTEMPTS - attemptCount} attempt${MAX_ATTEMPTS - attemptCount === 1 ? "" : "s"} left.`);
+      }
+    }
+  } catch(e) {
+    setError("Could not reach database. Check your connection.");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "ENTER";
+  }
+}
+
+document.getElementById("pw-submit-btn").onclick = attemptLogin;
+document.getElementById("password-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") attemptLogin();
+});
+
+document.getElementById("signout-btn").onclick = () => {
+  sessionStorage.removeItem("authed");
+  showLogin();
+};
+
+// ── Live job listener ────────────────────────────────────────
+function startJobListener() {
+  // Query without ordering to avoid missing field errors
+  const q = collection(db, "jobs");
+  unsubJobs = onSnapshot(q, 
+    snapshot => {
+      console.log("📊 Firestore snapshot received:", snapshot.docs.length, "documents");
+      jobs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Sort by most recent to least recent
+      jobs.sort((a, b) => {
+        // Get timestamp, handling both Firestore Timestamp objects and regular values
+        const getTime = (job) => {
+          const ts = job.started_at || job.created_at;
+          if (!ts) return 0;
+          // Handle Firestore Timestamp objects
+          if (ts.toMillis) return ts.toMillis();
+          // Handle ISO strings or numbers
+          return new Date(ts).getTime() || 0;
+        };
+        return getTime(b) - getTime(a);  // Most recent first
+      });
+      console.log("📊 Jobs data:", jobs);
+      renderJobs(jobs);
+      updateStats(jobs);
+      // Refresh detail panel if open
+      if (currentDetailJob) {
+        const updated = jobs.find(j => j.id === currentDetailJob.id);
+        if (updated) { currentDetailJob = updated; renderProgress(updated); }
+      }
+      // Start global ticker if not running
+      if (!elapsedInterval) startElapsedTimer(null);
+    },
+    error => {
+      console.error("❌ Firestore listener error:", error);
+      console.error("Error code:", error.code);
+      console.error("Error message:", error.message);
+      // Show error in the UI
+      const container = document.getElementById("jobs-list");
+      container.innerHTML = `<div class="empty-state">Error loading data: ${error.message}<br><br>Check browser console for details.</div>`;
+    }
+  );
+}
+
+// ── Render table ─────────────────────────────────────────────
+function renderJobs(jobs) {
+  const container = document.getElementById("jobs-list");
+  if (!jobs.length) {
+    container.innerHTML = '<div class="empty-state">No runs yet. Start a simulation to see results here.</div>';
+    return;
+  }
+  const visibleJobs = jobs.filter(j => !j.hidden);
+  if (!visibleJobs.length) { container.innerHTML = '<div class="empty-state">No runs yet.</div>'; return; }
+  container.innerHTML = visibleJobs.map(job => {
+    const startedStr = job.started_at ? formatTime(job.started_at) : (job.created_at ? formatTime(job.created_at) : '—');
+    const processStr = getProcessLabel(job);
+    const dragStr = job.drag_N != null ? Number(job.drag_N).toFixed(4) : '—';
+    // Drag delta vs previous completed job
+    const doneJobs = jobs.filter(j => !j.hidden && j.status === 'done' && j.drag_N != null);
+    const myIdx = doneJobs.findIndex(j => j.id === job.id);
+    let dragDeltaHtml = '<span class="job-val muted">—</span>';
+    if (job.status === 'done' && myIdx >= 0 && myIdx < doneJobs.length - 1) {
+      const prev = doneJobs[myIdx + 1];
+      const delta = Number(job.drag_N) - Number(prev.drag_N);
+      const cls = Math.abs(delta) > 0.005 ? 'worse' : 'better';
+      const sign = delta > 0 ? '+' : '';
+      dragDeltaHtml = `<span class="drag-delta ${cls}">${sign}${delta.toFixed(4)} N</span>`;
+    }
+    const presStr = job.p_residual ? Number(job.p_residual).toExponential(3) : '—';
+    const cancelBtn = (job.status === 'running' || job.status === 'queued')
+      ? '<button class="cancel-btn" onclick="event.stopPropagation();cancelJob(&quot;' + job.id + '&quot;)">✕</button>'
+      : '';
+    const deleteBtn = (job.status === 'done' || job.status === 'failed' || job.status === 'cancelled')
+      ? '<button class="delete-btn" onclick="event.stopPropagation();deleteJob(&quot;' + job.id + '&quot;)">🗑</button>'
+      : '';
+    return `
+    <div class="job-row" onclick="openDetail('${job.id}')">
+      <div>
+        <div class="job-name">${job.job_name || job.id}</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:0.06em;margin-top:3px">${startedStr}</div>
+      </div>
+      <div>${statusBadge(job.status)}</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text2)">${processStr}</div>
+      <div class="job-val">${dragStr}</div>
+      <div>${dragDeltaHtml}</div>
+      <div class="job-val">${presStr}</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="view-btn" onclick="event.stopPropagation();openDetail('${job.id}')">VIEW</button>
+        ${cancelBtn}${deleteBtn}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function statusBadge(s) {
+  const m = { done:'done', running:'running', queued:'queued', failed:'failed' };
+  const cls = m[s] || 'queued';
+  return `<span class="badge badge-${cls}"><span class="badge-dot"></span>${s || 'queued'}</span>`;
+}
+
+// ── Summary stats ─────────────────────────────────────────────
+function updateStats(jobs) {
+  document.getElementById("stat-total").textContent   = jobs.length;
+  document.getElementById("stat-running").textContent = jobs.filter(j=>j.status==="running").length;
+  const done = jobs.filter(j => !j.hidden && j.status==="done" && j.drag_N != null);
+  if (done.length) {
+    const bDrag = Math.min(...done.map(j=>j.drag_N));
+    document.getElementById("stat-drag").innerHTML = `${bDrag.toFixed(4)}<span class="stat-unit">N</span>`;
+  }
+  const deltaEl = document.getElementById("stat-delta");
+  if (done.length >= 2) {
+    const delta = Number(done[0].drag_N) - Number(done[1].drag_N);
+    const sign = delta > 0 ? '+' : '';
+    const cls = Math.abs(delta) > 0.005 ? 'worse' : 'better';
+    deltaEl.innerHTML = `<span class="drag-delta ${cls}" style="font-size:36px">${sign}${delta.toFixed(4)}</span><span class="stat-unit">N</span>`;
+  } else {
+    deltaEl.innerHTML = `—<span class="stat-unit">N</span>`;
+  }
+}
+
+// ── Detail panel ──────────────────────────────────────────────
+window.openDetail = async function(jobId) {
+  const job = jobs.find(j => j.id === jobId);
+  if (!job) return;
+
+  console.log("📋 Opening detail for job:", jobId);
+  console.log("📋 Job data:", job);
+  console.log("📋 Results URL:", job.results_url);
+  console.log("📋 STL URL:", job.stl_url);
+
+  document.getElementById("detail-title").textContent = job.job_name || jobId;
+  document.getElementById("dl-csv").href = job.results_url || '#';
+  document.getElementById("dl-stl").href = job.stl_url     || '#';
+  document.getElementById("overlay").classList.add("open");
+  document.getElementById("detail-panel").classList.add("open");
+
+  renderProgress(job);
+  startElapsedTimer(job);
+
+  if (forcesChart)   { forcesChart.destroy();   forcesChart   = null; }
+  if (residualChart) { residualChart.destroy();  residualChart = null; }
+  if (animFrameId)   { cancelAnimationFrame(animFrameId); animFrameId = null; }
+
+  // Helper: fetch a Firebase Storage URL with the current user's auth token
+  async function authedFetch(url) {
+    const token = await auth.currentUser.getIdToken();
+    return fetch(url, { headers: { Authorization: `Firebase ${token}` } });
+  }
+
+  if (job.results_url) {
+    console.log("📊 Fetching CSV from:", job.results_url);
+    try {
+      const r = await authedFetch(job.results_url);
+      console.log("📊 CSV fetch response status:", r.status);
+      if (!r.ok) {
+        console.error("❌ CSV fetch failed with status:", r.status);
+        // don't return — still load STL below
+      } else {
+      const csvText = await r.text();
+      console.log("📊 CSV data fetched, length:", csvText.length);
+      console.log("📊 First 200 chars:", csvText.substring(0, 200));
+      renderCharts(csvText);
+      }  // end else (r.ok)
+    } catch(e) { 
+      console.error("❌ CSV fetch error:", e); 
+    }
+  } else {
+    console.warn("⚠️ No results_url found in job data");
+  }
+
+  if (job.stl_url) {
+    console.log("🎨 Loading STL from:", job.stl_url);
+    loadSTLViewer(job.stl_url, authedFetch);
+  } else {
+    console.warn("⚠️ No stl_url found in job data");
+  }
+};
+
+window.closeDetail = function() {
+  document.getElementById("overlay").classList.remove("open");
+  document.getElementById("detail-panel").classList.remove("open");
+  if (animFrameId)    { cancelAnimationFrame(animFrameId); animFrameId = null; }
+  if (elapsedInterval){ clearInterval(elapsedInterval); elapsedInterval = null; }
+  currentDetailJob = null;
+};
+
+// ── Charts ────────────────────────────────────────────────────
+function renderCharts(csvText) {
+  console.log("📈 renderCharts called with CSV length:", csvText.length);
+  const lines = csvText.trim().split('\n').slice(1);
+  console.log("📈 Number of data lines:", lines.length);
+  
+  const timesteps=[], drags=[], presids=[];
+  lines.forEach(line => {
+    const [t,drag,,pres] = line.split(',');
+    if (!t || t.trim()==='') return;
+    timesteps.push(parseInt(t));
+    drags.push(parseFloat(drag)||null);
+    presids.push(parseFloat(pres)||null);
+  });
+
+  // Avg last 200
+  const avg = arr => { const v = arr.filter(x=>x!==null&&!isNaN(x)); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; };
+  const last200Drags = drags.slice(-200);
+  const avgDrag = avg(last200Drags);
+  const maxD = Math.max(...last200Drags.filter(v=>v!==null));
+  const minD = Math.min(...last200Drags.filter(v=>v!==null));
+  const oscillation = maxD - minD;
+
+  // Drag delta vs previous done job
+  const doneJobs = jobs.filter(j => !j.hidden && j.status === 'done' && j.drag_N != null);
+  const myIdx = currentDetailJob ? doneJobs.findIndex(j => j.id === currentDetailJob.id) : -1;
+  let dragDelta = null;
+  if (myIdx >= 0 && myIdx < doneJobs.length - 1) {
+    dragDelta = Number(doneJobs[myIdx].drag_N) - Number(doneJobs[myIdx+1].drag_N);
+  }
+
+  // Update stats panel
+  const statsEl = document.getElementById('detail-stats');
+  if (statsEl) {
+    statsEl.style.display = 'grid';
+    document.getElementById('detail-drag').innerHTML = avgDrag !== null ? avgDrag.toFixed(4) + '<span class="stat-unit">N</span>' : '—';
+    document.getElementById('detail-osc').innerHTML  = '±' + (oscillation/2).toFixed(4) + '<span class="stat-unit">N</span>';
+    const deltaEl = document.getElementById('detail-delta');
+    if (dragDelta !== null) {
+      const sign = dragDelta > 0 ? '+' : '';
+      const cls = dragDelta < -0.0005 ? 'better' : dragDelta > 0.0005 ? 'worse' : 'same';
+      deltaEl.innerHTML = `<span class="drag-delta ${cls}" style="font-size:32px">${sign}${dragDelta.toFixed(4)}</span><span class="stat-unit">N</span>`;
+    } else {
+      deltaEl.innerHTML = '<span style="color:var(--text2);font-size:20px">No prev run</span>';
+    }
+  }
+
+  console.log("📈 Parsed:", timesteps.length, "points | avgDrag:", avgDrag, "| delta:", dragDelta);
+
+  // Only show from iteration 1000 onwards
+  const startIter = 1000;
+  const skipCount = timesteps.findIndex(t => t >= startIter);
+  const sliceFrom = skipCount === -1 ? 0 : skipCount;
+  const filteredTimesteps = timesteps.slice(sliceFrom);
+  const filteredDrags = drags.slice(sliceFrom);
+  const filteredPresids = presids.slice(sliceFrom);
+
+  const baseOpts = {
+    responsive:true, animation:false,
+    interaction: {
+      mode: 'index',
+      intersect: false,
+    },
+    plugins:{ 
+      legend:{ labels:{ color:'#ffffff', font:{family:'Share Tech Mono',size:12,weight:'bold'} } },
+      tooltip: {
+        enabled: true,
+        mode: 'index',
+        intersect: false,
+        backgroundColor: 'rgba(0,0,0,0.9)',
+        titleColor: '#ffffff',
+        bodyColor: '#ffffff',
+        borderColor: '#444444',
+        borderWidth: 1,
+        padding: 12,
+        displayColors: true,
+        callbacks: {
+          label: function(context) {
+            let label = context.dataset.label || '';
+            if (label) {
+              label += ': ';
+            }
+            if (context.parsed.y !== null) {
+              // Use 3 decimal places for drag, scientific notation for residuals
+              if (context.dataset.label === 'Drag (N)') {
+                label += context.parsed.y.toFixed(3);
+              } else {
+                label += context.parsed.y.toExponential(4);
+              }
+            }
+            return label;
+          }
+        }
+      }
+    },
+    scales:{
+      x:{ ticks:{color:'#ffffff',font:{family:'Share Tech Mono',size:11,weight:'bold'}}, grid:{color:'#222222'} },
+      y:{ ticks:{color:'#ffffff',font:{family:'Share Tech Mono',size:11,weight:'bold'}}, grid:{color:'#222222'} }
+    }
+  };
+
+  console.log("📈 Creating drag chart...");
+  forcesChart = new Chart(document.getElementById("forces-chart"), {
+    type:'line', data:{
+      labels: filteredTimesteps,
+      datasets:[
+        { label:'Drag (N)', data:filteredDrags, borderColor:'#ffffff', borderWidth:2, pointRadius:0, pointHitRadius:20, tension:0.3, fill:false },
+        { label:'Avg last 200', data:filteredTimesteps.map(()=>avgDrag), borderColor:'#60a5fa', borderWidth:1.5, borderDash:[6,4], pointRadius:0, pointHitRadius:0, fill:false },
+      ]
+    }, options: baseOpts
+  });
+  console.log("✅ Drag chart created");
+
+  console.log("📈 Creating residual chart...");
+  residualChart = new Chart(document.getElementById("residual-chart"), {
+    type:'line', data:{
+      labels: filteredTimesteps,
+      datasets:[{ label:'p residual', data:filteredPresids, borderColor:'#a78bfa', borderWidth:2, pointRadius:0, pointHitRadius:20, fill:false }]
+    },
+    options:{ 
+      ...baseOpts, 
+      scales:{ 
+        ...baseOpts.scales, 
+        y:{ 
+          ...baseOpts.scales.y, 
+          type:'logarithmic',
+          ticks: {
+            color:'#ffffff',
+            font:{family:'Share Tech Mono',size:11,weight:'bold'},
+            callback: function(value) {
+              return value.toExponential(0);
+            }
+          }
+        } 
+      } 
+    }
+  });
+  console.log("✅ Residual chart created");
+}
+
+// ── Process label (plain text) ───────────────────────────────
+function getProcessLabel(job) {
+  if (job.status === 'done')      return 'complete';
+  if (job.status === 'failed')    return 'failed';
+  if (job.status === 'cancelled') return 'cancelled';
+  if (!job.process)               return '—';
+  const p = job.process;
+  if (p === 'solving' && job.iteration > 0) {
+    const iterTime = job.iter_time || 0;
+    const rem = Math.round((500 - job.iteration) * iterTime);
+    const remStr = rem > 60 ? Math.floor(rem/60) + 'm' : rem + 's';
+    return 'iter ' + job.iteration + '/500 · ~' + remStr;
+  }
+  return p;
+}
+
+// Keep processChip as alias for detail panel
+function processChip(job) { return getProcessLabel(job); }
+
+// ── Action buttons ───────────────────────────────────────────
+// actionButtons now inlined in renderJobs above
+// ── Cancel job ────────────────────────────────────────────────
+window.cancelJob = async function(jobId) {
+  if (!confirm("Cancel job " + jobId + "?\nThe simulation will stop on the next check.")) return;
+  try {
+    await updateDoc(doc(db, 'jobs', jobId), { status: 'cancelled' });
+    console.log('✓ Cancelled', jobId);
+  } catch(e) {
+    alert('Failed to cancel: ' + e.message);
+  }
+};
+
+// ── Delete job ────────────────────────────────────────────────
+window.deleteJob = async function(jobId) {
+  if (!confirm("Delete job " + jobId + "?\nThis cannot be undone.")) return;
+  try {
+    await updateDoc(doc(db, 'jobs', jobId), { hidden: true });
+    console.log('✓ Deleted', jobId);
+  } catch(e) {
+    alert('Failed to delete: ' + e.message);
+  }
+};
+
+// ── Time helpers ─────────────────────────────────────────────
+function formatTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleString('en-GB', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hour12:false });
+}
+
+function timeAgo(iso) {
+  if (!iso) return '';
+  const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+  if (diff < 60)   return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  return `${Math.floor(diff/3600)}h ${Math.floor((diff%3600)/60)}m ago`;
+}
+
+function fmtElapsed(iso) {
+  if (!iso) return '—';
+  const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+  const h = Math.floor(diff/3600);
+  const m = Math.floor((diff%3600)/60);
+  const s = diff % 60;
+  if (h > 0) return `${h}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`;
+  return `${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`;
+}
+
+// Live elapsed timer
+let elapsedInterval = null;
+let currentDetailJob = null;
+
+function startElapsedTimer(job) {
+  if (elapsedInterval) clearInterval(elapsedInterval);
+  currentDetailJob = job || currentDetailJob;
+  const el = document.getElementById('elapsed-timer');
+  const update = () => {
+    if (!currentDetailJob) return;
+    const ref = currentDetailJob.started_at || currentDetailJob.created_at;
+    if (el) el.textContent = ref ? fmtElapsed(ref) : '—';
+    // Update row created-ago timers
+    document.querySelectorAll('[id^="elapsed-"]').forEach(el2 => {
+      const jid = el2.id.replace('elapsed-','');
+      const j = jobs.find(x => x.id === jid);
+      if (j && j.created_at) el2.textContent = timeAgo(j.created_at);
+    });
+    // Update row elapsed timers
+    document.querySelectorAll('[id^="started-"]').forEach(el2 => {
+      const jid = el2.id.replace('started-','');
+      const j = jobs.find(x => x.id === jid);
+      if (j && (j.started_at || j.created_at)) {
+        el2.textContent = fmtElapsed(j.started_at || j.created_at);
+      }
+    });
+    // Refresh process chips live
+    document.querySelectorAll('.process-chip.active').forEach(el2 => {
+      const row = el2.closest('.job-row');
+      if (!row) return;
+      const onclick = row.getAttribute('onclick') || '';
+      const m = onclick.match(/openDetail\('(.+?)'\)/);
+      if (!m) return;
+      const j = jobs.find(x => x.id === m[1]);
+      if (j) el2.outerHTML = processChip(j);
+    });
+  };
+  update();
+  elapsedInterval = setInterval(update, 1000);
+}
+
+const STAGE_ORDER = ['blockMesh','surfaceFeatures','decomposePar','meshing','reconstructParMesh','solving','reconstructPar'];
+const STAGE_LABELS = {
+  blockMesh: 'blockMesh',
+  surfaceFeatures: 'surfaceFeatures',
+  decomposePar: 'decomposePar',
+  meshing: 'meshing',
+  reconstructParMesh: 'reconstructMesh',
+  solving: 'solving',
+  reconstructPar: 'reconstruct',
+};
+const STAGE_WEIGHT = {
+  blockMesh: 2, surfaceFeatures: 3, decomposePar: 1,
+  meshing: 35, reconstructParMesh: 2, solving: 55, reconstructPar: 2
+};
+
+function renderProgress(job) {
+  const block = document.getElementById('progress-block');
+  const meta  = document.getElementById('progress-meta');
+  const bar   = document.getElementById('progress-bar');
+  const stages = document.getElementById('progress-stages');
+
+  if (!block) return;  // progress elements not in DOM, nothing to do
+
+  const isActive = job.status === 'running' || job.status === 'queued';
+  block.style.display = isActive ? 'flex' : 'none';
+  if (!isActive) return;
+
+  const cur = job.process || 'queued';
+  const curIdx = STAGE_ORDER.indexOf(cur);
+
+  // Build stage chips
+  stages.innerHTML = STAGE_ORDER.map((s, i) => {
+    let cls = '';
+    if (i < curIdx)  cls = 'done';
+    if (i === curIdx) cls = 'active';
+    return `<div class="stage-chip ${cls}">${STAGE_LABELS[s]}</div>`;
+  }).join('<div style="color:var(--border);font-size:10px">›</div>');
+
+  // Progress bar based on cumulative stage weight
+  let pct = 0;
+  let totalWeight = Object.values(STAGE_WEIGHT).reduce((a,b)=>a+b,0);
+  STAGE_ORDER.forEach((s, i) => {
+    if (i < curIdx) pct += STAGE_WEIGHT[s];
+    if (i === curIdx && s === 'solving' && job.iteration > 0) {
+      pct += STAGE_WEIGHT[s] * (job.iteration / 500);
+    }
+  });
+  bar.style.width = Math.min(99, (pct/totalWeight)*100).toFixed(1) + '%';
+
+  // Meta text
+  if (cur === 'solving' && job.iteration > 0) {
+    const iterTime = job.iter_time || 0;
+    const remaining = Math.round((500 - job.iteration) * iterTime);
+    const remStr = remaining > 60
+      ? `~${Math.floor(remaining/60)}m ${remaining%60}s remaining`
+      : `~${remaining}s remaining`;
+    meta.textContent = `Iteration ${job.iteration} / 500 — ${iterTime.toFixed(1)}s/iter — ${remStr}`;
+  } else if (cur === 'meshing') {
+    meta.textContent = 'Meshing in progress — this takes 20-40 min';
+  } else if (cur === 'queued') {
+    meta.textContent = 'Queued — waiting for instance to start';
+  } else {
+    meta.textContent = cur.charAt(0).toUpperCase() + cur.slice(1) + ' in progress...';
+  }
+}
+
+// ── STL Viewer ────────────────────────────────────────────────
+function loadSTLViewer(stlUrl, authedFetch) {
+  console.log("🎨 loadSTLViewer called with URL:", stlUrl);
+  const loading = document.getElementById("stl-loading");
+  const canvas  = document.getElementById("stl-canvas");
+  loading.style.display = 'flex';
+  canvas.style.display  = 'none';
+
+  console.log("🎨 Fetching STL file...");
+  authedFetch(stlUrl)
+    .then(r => {
+      console.log("🎨 STL fetch response status:", r.status);
+      if (!r.ok) { throw new Error(`HTTP ${r.status}`); }
+      return r.arrayBuffer();
+    })
+    .then(buf => {
+      console.log("🎨 STL data loaded, size:", buf.byteLength, "bytes");
+      loading.style.display = 'none';
+      canvas.style.display  = 'block';
+      // Wait one frame so canvas has layout dimensions before Three.js reads them
+      requestAnimationFrame(() => initThree(canvas, buf));
+    })
+    .catch(err => {
+      console.error("❌ STL load error:", err);
+      loading.textContent = 'Could not load geometry: ' + err.message;
+    });
+}
+
+function initThree(canvas, buf) {
+  const W = canvas.clientWidth || canvas.offsetWidth || canvas.parentElement.clientWidth || 800;
+  const H = canvas.clientHeight || canvas.offsetHeight || canvas.parentElement.clientHeight || 500;
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+  renderer.setSize(W, H);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setClearColor(0x0d1520, 1);
+
+  const scene  = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, W/H, 0.0001, 100);
+
+  const view = new DataView(buf);
+  const triCount = view.getUint32(80, true);
+  const positions = [];
+  for (let i=0; i<triCount; i++) {
+    const off = 84 + i*50;
+    for (let v=0; v<3; v++) {
+      const vo = off + 12 + v*12;
+      positions.push(
+        view.getFloat32(vo,    true),
+        view.getFloat32(vo+4,  true),
+        view.getFloat32(vo+8,  true),
+      );
+    }
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.computeVertexNormals();
+  geo.center();
+
+  geo.computeBoundingBox();
+  const size = new THREE.Vector3();
+  geo.boundingBox.getSize(size);
+  const s = 1.0 / Math.max(size.x, size.y, size.z);
+  geo.scale(s, s, s);
+
+  const mat  = new THREE.MeshPhongMaterial({ color:0x88aacc, specular:0x224466, shininess:40, side:THREE.DoubleSide });
+  const mesh = new THREE.Mesh(geo, mat);
+  scene.add(mesh);
+
+  scene.add(new THREE.AmbientLight(0x334455, 1.5));
+  const dl = new THREE.DirectionalLight(0x00d4ff, 1.2);
+  dl.position.set(1,2,3); scene.add(dl);
+  const dl2 = new THREE.DirectionalLight(0xffffff, 0.3);
+  dl2.position.set(-1,-1,-1); scene.add(dl2);
+
+  camera.position.set(0, -0.8, 0.5);
+  camera.lookAt(0,0,0);
+
+  let rotating=false, panning=false, lastX=0, lastY=0, rotX=0, rotY=0, zoom=1, panX=0, panY=0;
+  
+  canvas.addEventListener('mousedown', e=>{
+    if (e.button === 2) { // Right click - rotate
+      rotating = true; 
+      lastX = e.clientX; 
+      lastY = e.clientY;
+      e.preventDefault();
+    } else if (e.button === 1) { // Middle click - pan
+      panning = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      e.preventDefault();
+    }
+  });
+  
+  canvas.addEventListener('mouseup', e => { 
+    rotating = false; 
+    panning = false; 
+  });
+  
+  canvas.addEventListener('mouseleave', () => {
+    rotating = false;
+    panning = false;
+  });
+  
+  canvas.addEventListener('mousemove', e => {
+    if (rotating) {
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      rotY += dx * 0.5; 
+      rotX += dy * 0.5;
+      lastX = e.clientX; 
+      lastY = e.clientY;
+    } else if (panning) {
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      panX += dx * 0.002;
+      panY -= dy * 0.002;
+      lastX = e.clientX;
+      lastY = e.clientY;
+    }
+  });
+  
+  // Disable right-click context menu
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  
+  // Fix scroll wheel to only zoom, prevent page scroll
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    const delta = e.deltaY * 0.001;
+    zoom = Math.max(0.3, Math.min(5, zoom + delta));
+  });
+
+  function animate() {
+    animFrameId = requestAnimationFrame(animate);
+    mesh.rotation.x = rotX * Math.PI/180;
+    mesh.rotation.z = rotY * Math.PI/180;
+    mesh.position.x = panX;
+    mesh.position.y = panY;
+    camera.position.z = 0.5*zoom;
+    renderer.render(scene, camera);
+  }
+  animate();
+}
+</script>
+</body>
+</html>

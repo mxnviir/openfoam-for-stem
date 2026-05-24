@@ -1,0 +1,12 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Storage access control is enforced at the UI level via the shared password.
+    // Anyone with the dashboard open can read/write STL files and results.
+    match /{allPaths=**} {
+      allow read, write: if true;
+    }
+  }
+}
