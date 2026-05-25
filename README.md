@@ -95,18 +95,19 @@ pip install boto3 paramiko requests python-dotenv
 
 ## CFD software comparison
 
-A quick breakdown of every CFD option we tried for STEM racing, and why we ended up building this.
+A breakdown of every CFD option we evaluated for STEM racing, and why we ended up building this instead of using any of them off the shelf.
 
 ### Quick comparison
 
-| Software | Accuracy | Setup time per sim | Blocks your PC | Verdict |
-|----------|----------|--------------------|----------------|---------|
-| Ansys Discovery | ❌ Unreliable (±3N error) | Fast | Yes | Avoid |
-| Ansys Fluent | ✅ Very good | 1h+ | Yes | Too slow to iterate |
-| SimScale | ⚠️ Poor convergence | Easy | No | Not reliable enough |
-| Autodesk CFD | ⚠️ Mediocre | Very slow | Yes | Not worth it |
-| SolidWorks CFD | ⚠️ Below SimScale | Easy | Yes | Not accurate enough |
-| **OpenFOAM (this repo)** | ✅ Good | Automated | **No** | ✅ Best for STEM |
+| Software | Accuracy | Setup time per sim | Runs locally on your PC | Verdict |
+|----------|----------|--------------------|------------------------|---------|
+| Ansys Discovery | Unreliable (±3N error) | Fast | Yes | Avoid entirely |
+| Ansys Fluent | Very good | 1h+ per sim | Yes | Too slow for iterative design |
+| SimScale | Poor convergence | Easy | No | Not reliable enough for race results |
+| Simcenter Star-CCM+ | Very good | Low | No (cloud capable) | Great software, near-impossible to license |
+| Autodesk CFD | Mediocre | Very slow | Yes | Not worth the setup time |
+| SolidWorks CFD | Below SimScale | Easy | Yes | Not accurate enough |
+| **OpenFOAM (this repo)** | Good | Fully automated | No | Best option for STEM racing |
 
 ---
 
@@ -114,7 +115,7 @@ A quick breakdown of every CFD option we tried for STEM racing, and why we ended
 
 ![Ansys Discovery](assets/discovery.png)
 
-Avoid. Discovery's fast simulation mode sacrifices accuracy to the point where results are not usable — we saw errors as large as 3N in either direction on the same geometry. You also have very little control over the simulation setup. Not worth using for any serious aerodynamic analysis.
+Avoid. Discovery's fast simulation mode aggressively approximates the physics in ways that make results unreliable for external aerodynamics. We consistently saw drag errors as large as 3N in either direction on the same geometry — meaning it can tell you drag went up when it actually went down. You also have very little control over mesh quality, solver settings, or convergence criteria. It is not a useful tool for any serious aerodynamic analysis on a STEM car.
 
 ---
 
@@ -122,7 +123,7 @@ Avoid. Discovery's fast simulation mode sacrifices accuracy to the point where r
 
 ![Ansys Fluent](assets/fluent.png)
 
-Genuinely accurate and industry-standard, but completely impractical for iterative STEM car development. Each simulation takes over an hour just to set up, and then 3+ hours to run — locally on your PC, which is completely locked up the entire time. If you need to run 10 design variants, that's potentially days of compute with your laptop unusable. Great software, wrong tool for this use case.
+Genuinely accurate and widely used in industry — the solver quality is not in question. The problem is the workflow. Each simulation takes well over an hour just to set up from scratch, and then 3+ hours to solve, running locally on your PC the entire time. Your machine is completely unusable while it runs. For iterative STEM car development where you might want to test 10 design variants in a weekend, this is a major bottleneck. Great software, wrong tool for this use case.
 
 ---
 
@@ -130,9 +131,19 @@ Genuinely accurate and industry-standard, but completely impractical for iterati
 
 ![SimScale](assets/simscale.png)
 
-Easy to set up and cloud-based, which is a big plus — it doesn't block your PC. However, drag results consistently fail to stabilise. Simulations need 3000+ iterations before there is any hope of convergence, and even then p residuals rarely drop below 1e-2, which is too high to trust the numbers.
+Easy to set up and fully cloud-based, so it does not tie up your PC — both genuine advantages. However, drag results consistently fail to stabilise in our experience. Getting any hope of convergence requires 3000+ iterations, and even then p residuals rarely drop below 1e-2, which is too high to trust the drag and lift numbers for design decisions.
 
-This is not a SimScale-specific flaw — it comes from limited solver customisation. SimScale uses an OpenFOAM backend with a custom geometry engine, but it doesn't expose the kind of mesh control needed to get reliable results efficiently. Our approach solves this by running a coarse mesh first, converging it, then mapping the pressure and velocity fields onto a fine mesh as a starting point. This means the fine run starts from a good initial condition instead of zero, avoiding the 5000+ iteration burn-in that makes SimScale (and vanilla OpenFOAM) so slow to converge.
+This is not purely a SimScale problem — it stems from limited solver customisation. SimScale uses an OpenFOAM backend with a custom geometry engine, but it does not expose the mesh controls needed to get reliable convergence efficiently. Our approach addresses this directly: we run a fast coarse mesh solve first, then map the converged pressure and velocity fields onto the fine mesh as a starting condition. The fine run begins from a good initial state rather than from zero, which typically cuts the iterations needed for fine-mesh convergence from 5000+ down to around 1500 — a significant saving in both time and compute cost.
+
+---
+
+### Simcenter Star-CCM+
+
+![Simcenter Star-CCM+](assets/starccm.png)
+
+Technically one of the best CFD packages available. Setup time per simulation is low relative to Fluent, the solver is very accurate, and it supports cloud execution so it does not have to run on your local machine. If you can get access to it, it is a strong option for STEM racing.
+
+The problem is licensing. Star-CCM+ licenses are expensive and typically tied to universities or large engineering organisations. Getting a license as a STEM team is extremely difficult in practice. If your school or sponsor happens to have access, it is worth exploring — but for most teams it is not a realistic option.
 
 ---
 
@@ -140,7 +151,7 @@ This is not a SimScale-specific flaw — it comes from limited solver customisat
 
 ![Autodesk CFD](assets/auto.png)
 
-Takes far too long to set up each simulation, and like Ansys it runs locally — so your PC is tied up for the duration. Accuracy is mediocre. Not worth the time investment when better options exist.
+Setup is slow and cumbersome — each simulation requires significant manual configuration before you can even run it. Once running, it executes locally on your PC, tying up your machine for the duration of the solve. Accuracy is mediocre and not significantly better than SolidWorks CFD. The combination of high setup overhead and local compute makes it hard to justify over the other options.
 
 ---
 
@@ -148,7 +159,7 @@ Takes far too long to set up each simulation, and like Ansys it runs locally —
 
 ![SolidWorks CFD](assets/solidworks.png)
 
-Easier to set up than most and more accurate than Discovery, but still falls short of SimScale-level results — which is already not accurate enough for reliable aerodynamic analysis. Also runs locally, so your PC is blocked during the solve.
+Easier to set up than most of the other local solvers and meaningfully more accurate than Ansys Discovery, but it still falls short of SimScale-level results — which are already not reliable enough for confident design decisions. Runs locally on your PC, so your machine is occupied during the solve. A reasonable starting point if you are already in the SolidWorks ecosystem, but not accurate enough to base final design choices on.
 
 ---
 
@@ -156,9 +167,9 @@ Easier to set up than most and more accurate than Discovery, but still falls sho
 
 ![OpenFOAM](assets/openfoam.png)
 
-OpenFOAM running on cloud EC2 instances is the best option we found for STEM racing. It is fully automated — export your STLs from Fusion 360, run one command, and your PC is free while the simulation runs in the cloud. Results are reliable when the mesh is set up correctly (p residual consistently below 1e-4 in our runs).
+OpenFOAM on cloud EC2 instances is the best option we found for STEM racing. The entire workflow is automated — export your STLs from Fusion 360, run one command, and your PC is free while the simulation runs in the cloud. With the right mesh setup, results are reliable: we consistently achieved p residuals below 1e-4 across more than 200 runs.
 
-The key advantage over SimScale's OpenFOAM backend is the coarse-to-fine field mapping approach: the orchestrator runs a fast coarse mesh solve first, maps the converged pressure and velocity fields onto the fine mesh, and starts the fine solve from that initial condition. This typically cuts the iterations needed for fine-mesh convergence from 5000+ down to around 1500, saving significant time and cost.
+The core advantage over SimScale's OpenFOAM backend is the coarse-to-fine field mapping pipeline. The orchestrator runs a coarse mesh solve first to get an approximate converged solution, then maps those pressure and velocity fields onto the fine mesh as the starting condition for the fine run. This avoids the thousands of iterations a fine mesh would otherwise spend just reaching a plausible initial state, cutting total solve time significantly without sacrificing accuracy on the final result.
 
 ---
 
