@@ -57,7 +57,7 @@ Firebase (Google Cloud)
 └── Hosting                   — static web dashboard
 
 AWS (ap-south-1 or your region)
-└── EC2 c6g.2xlarge pool      — OpenFOAM 13, runs run_job.py
+└── EC2 c7i.2xlarge pool      — OpenFOAM 13, runs run_job.py
 ```
 
 ---
@@ -67,7 +67,7 @@ AWS (ap-south-1 or your region)
 | Requirement | Notes |
 |-------------|-------|
 | [Firebase](https://console.firebase.google.com) account | Free Spark plan is fine to start |
-| [AWS](https://aws.amazon.com) account | EC2 c6g.2xlarge is ~$0.34/hr |
+| [AWS](https://aws.amazon.com) account | EC2 c7i.2xlarge is ~$0.36/hr |
 | [Autodesk Fusion 360](https://www.autodesk.com/products/fusion-360) | For the CAD export macro |
 | Python 3.9+ on Windows | For the orchestrator |
 | [Node.js](https://nodejs.org) 18+ | Required by the Firebase CLI |
@@ -236,7 +236,7 @@ When the job reaches `done`:
 - Download the **results CSV** for further analysis in Excel or Python
 - Download the **STL** to visualise the geometry used for the simulation
 
-#### Typical run times on c6g.2xlarge
+#### Typical run times on c7i.2xlarge
 
 | Stage | Time |
 |-------|------|
@@ -266,7 +266,7 @@ The template lives in `openfoam_template/motorBike/`. Key settings you may want 
 ## Scaling the instance pool
 
 1. Create a new AMI from `cfd-1` (or any working instance) after any software updates
-2. Launch new `c6g.2xlarge` instances from the AMI
+2. Launch new `c7i.2xlarge` instances from the AMI
 3. Assign Elastic IPs and attach the `openfoam-ec2-role` IAM role
 4. Add them to the `EC2_INSTANCES` list in `orchestrator/aws_study.py`:
 

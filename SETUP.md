@@ -10,7 +10,7 @@ This document walks you through setting up the OpenFOAM for STEM Racing platform
 
 ### Costs and billing
 
-**AWS:** AWS gives new accounts up to **$200 in free credits** — $100 credited immediately when you sign up for the AWS Educate / Activate programme, and another $100 available after completing a set of getting-started challenges. Running `c6g.2xlarge` instances at ~$0.34/hr adds up. **Once your credits are exhausted, AWS will charge your card.** It is the user's responsibility to monitor their credit balance in the AWS Billing console, stop instances when not in use, and manage their own AWS costs. We are not responsible for any AWS bills you incur.
+**AWS:** AWS gives new accounts up to **$200 in free credits** — $100 credited immediately when you sign up for the AWS Educate / Activate programme, and another $100 available after completing a set of getting-started challenges. Running `c7i.2xlarge` instances at ~$0.36/hr adds up. **Once your credits are exhausted, AWS will charge your card.** It is the user's responsibility to monitor their credit balance in the AWS Billing console, stop instances when not in use, and manage their own AWS costs. We are not responsible for any AWS bills you incur.
 
 **Firebase:** Firebase Storage requires the **Blaze (pay-as-you-go) plan** — you cannot use Storage on the free Spark plan. However, Blaze includes a generous free tier (5 GB storage, 1 GB/day downloads, 50k Firestore reads/day). In practice, **you are extremely unlikely to ever be charged by Firebase** — we ran over 200 simulations without a single Firebase charge. AWS will eat through your credits long before Firebase bills you anything. It is the user's responsibility to monitor their own Firebase usage. We are not responsible for any charges.
 
@@ -246,8 +246,8 @@ You need an EC2 instance pool pre-installed with OpenFOAM 13. Each instance star
 
 1. EC2 → **Instances** → **Launch instances**
 2. **Name**: `cfd-1`
-3. **AMI**: search `Ubuntu` → **Ubuntu Server 22.04 LTS (arm64)**
-4. **Instance type**: `c6g.2xlarge` (8 vCPU, 16 GB RAM, ARM-based, ~$0.34/hr)
+3. **AMI**: search `Ubuntu` → **Ubuntu Server 22.04 LTS (x86_64)**
+4. **Instance type**: `c7i.2xlarge` (8 vCPU, 16 GB RAM, Intel-based, ~$0.36/hr)
 5. **Key pair**: `cfd-key`
 6. **Network settings** → **Edit** → **Add security group rule**: SSH, Source: **My IP**
 7. **Advanced details**:
@@ -331,7 +331,7 @@ For each pool instance (`cfd-2`, `cfd-3`, etc.):
 1. EC2 → **Launch instances**
 2. **Name**: `cfd-2` (increment for each)
 3. **AMI**: **My AMIs** → `openfoam-cfd-base`
-4. **Instance type**: `c6g.2xlarge`
+4. **Instance type**: `c7i.2xlarge`
 5. **Key pair**: `cfd-key`
 6. **Network settings**: same security group as `cfd-1`
 7. **Advanced details**: IAM profile = `openfoam-ec2-role`, Tag = `ManagedBy = openfoam-stemracing`
