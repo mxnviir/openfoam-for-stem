@@ -54,7 +54,7 @@ The delta is purely informational — it compares whatever two runs happen to be
 
 ### Lift (N)
 
-Aerodynamic lift force in Newtons. **Negative = downforce**, which is what you want for a racing car. Not shown in the main table but available in the results CSV.
+Aerodynamic lift force in Newtons. **Negative = downforce, Positve = lift**. Not shown in the main table but available in the results CSV. Usually not worth enough optimising for.
 
 ### P Residual (Pressure Residual)
 
