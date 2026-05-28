@@ -1,6 +1,7 @@
 # OpenFOAM for STEM Racing
 
 Run 25-minute CFD simulations on your STEM racing car, entirely in the cloud, and get results in a live website.
+
 No joke, 25 minutes for a full run.
 
 ![Dashboard](assets/dashboard.png)
