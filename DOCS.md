@@ -94,7 +94,7 @@ All settings live in `openfoam_template/motorBike/system/`. The orchestrator cop
 
 | Setting | Default | Effect |
 |---------|---------|--------|
-| `endTime` | `1500` | Number of iterations for the fine solve. Increase if p residual is not converging. Each 100 iterations adds ~3–4 minutes on a c7i.2xlarge. |
+| `endTime` | `1500` | Number of iterations for the fine solve. Increase if p residual is not converging. Each 100 iterations adds ~3–4 minutes on a c6g.2xlarge. |
 | `writeInterval` | `100` | How often OpenFOAM writes a full solution snapshot to disk. Lower values use more disk space but give finer-grained restart points. |
 | `lRef` | `0.220` | Characteristic length (wheelbase) in metres. Used for Reynolds number calculation. |
 | `CofR` | `(0.101 0 0.021)` | Centre of rotation for moment calculations. Roughly the centre of the car. |

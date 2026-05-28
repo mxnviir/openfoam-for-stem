@@ -10,7 +10,7 @@ This document walks you through setting up the OpenFOAM for STEM Racing platform
 
 ### Costs and billing
 
-**AWS:** AWS gives new accounts up to **$200 in free credits** — $100 credited immediately when you sign up for the AWS Educate / Activate programme, and another $100 available after completing a set of getting-started challenges. Running `c7i.2xlarge` instances at ~$0.36/hr adds up. **Once your credits are exhausted, AWS will charge your card.** It is the user's responsibility to monitor their credit balance in the AWS Billing console, stop instances when not in use, and manage their own AWS costs. We are not responsible for any AWS bills you incur.
+**AWS:** AWS gives new accounts up to **$200 in free credits** — $100 credited immediately when you sign up for the AWS Educate / Activate programme, and another $100 available after completing a set of getting-started challenges. Running `c6g.2xlarge` instances at ~$0.27/hr or `c7g.16xlarge` instances at ~$2.18/hr adds up. **Once your credits are exhausted, AWS will charge your card.** It is the user's responsibility to monitor their credit balance in the AWS Billing console, stop instances when not in use, and manage their own AWS costs. We are not responsible for any AWS bills you incur.
 
 **Firebase:** Firebase Storage requires the **Blaze (pay-as-you-go) plan** — you cannot use Storage on the free Spark plan. However, Blaze includes a generous free tier (5 GB storage, 1 GB/day downloads, 50k Firestore reads/day). In practice, **you are extremely unlikely to ever be charged by Firebase** — we ran over 200 simulations without a single Firebase charge. AWS will eat through your credits long before Firebase bills you anything. It is the user's responsibility to monitor their own Firebase usage. We are not responsible for any charges.
 
@@ -242,12 +242,38 @@ You need an EC2 instance pool pre-installed with OpenFOAM 13. Each instance star
 5. **Create access key** → **Local code** → **Next** → **Create access key**
 6. **Copy both the Access Key ID and the Secret Access Key now.** You cannot retrieve the secret key again after leaving this page. Paste them into a temporary text file — you'll put them in `.env` in step 3.
 
-### 2d. Launch the base instance (cfd-1)
+### 2d. Request a service quota increase (required)
+
+Both instance types below use more vCPUs than the AWS default quota allows. You need to request an increase **before** launching instances, otherwise the launch will fail.
+
+1. AWS Console → **Service Quotas** → **AWS services** → search **EC2**
+2. Find **Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances**
+3. The default is **8 vCPUs** — request an increase to **200**
+4. Submit the request. AWS usually approves within a few hours to a day.
+
+> Do this in **ap-south-1 (Mumbai)** — it is the cheapest region for both instance types. If you are in a different region, request the quota there instead.
+
+---
+
+### 2e. Choose your instance type
+
+Pick one depending on how fast you need results:
+
+| | Instance | vCPUs | RAM | Sim time | Cost/hr | Best for |
+|---|---|---|---|---|---|---|
+| **Standard** | `c6g.2xlarge` | 8 | 16 GB | ~3 hours | ~$0.27/hr | Day-to-day runs, overnight |
+| **Fast** | `c7g.16xlarge` | 64 | 128 GB | ~30 min | ~$2.18/hr | Quick iteration, competition day |
+
+Both are ARM-based (AWS Graviton). Cost per simulation is similar since the fast instance runs for much less time. Use `c6g.2xlarge` as your default and switch to `c7g.16xlarge` when you need results quickly.
+
+---
+
+### 2f. Launch the base instance (cfd-1)
 
 1. EC2 → **Instances** → **Launch instances**
 2. **Name**: `cfd-1`
-3. **AMI**: search `Ubuntu` → **Ubuntu Server 22.04 LTS (x86_64)**
-4. **Instance type**: `c7i.2xlarge` (8 vCPU, 16 GB RAM, Intel-based, ~$0.36/hr)
+3. **AMI**: search `Ubuntu` → **Ubuntu Server 22.04 LTS (arm64)**
+4. **Instance type**: your chosen type from step 2e (`c6g.2xlarge` or `c7g.16xlarge`)
 5. **Key pair**: `cfd-key`
 6. **Network settings** → **Edit** → **Add security group rule**: SSH, Source: **My IP**
 7. **Advanced details**:
@@ -257,7 +283,7 @@ You need an EC2 instance pool pre-installed with OpenFOAM 13. Each instance star
 
 Wait ~1 minute for "running" status. Note the **Public IPv4 address**.
 
-### 2e. Assign an Elastic IP to cfd-1
+### 2g. Assign an Elastic IP to cfd-1
 
 Without an Elastic IP the instance gets a new address every time it starts.
 
@@ -267,7 +293,7 @@ Without an Elastic IP the instance gets a new address every time it starts.
 
 Note this IP — it's how you'll SSH in.
 
-### 2f. Install OpenFOAM 13 on cfd-1
+### 2h. Install OpenFOAM 13 on cfd-1
 
 Open Git Bash or PowerShell and SSH in:
 
@@ -288,7 +314,7 @@ pip3 install firebase-admin boto3
 
 This takes 5–10 minutes. When it finishes, type `exit`.
 
-### 2g. Download and copy the OpenFOAM template to cfd-1
+### 2i. Download and copy the OpenFOAM template to cfd-1
 
 The OpenFOAM case template is **not included in this repository** — it is hosted on Google Drive to avoid bloating the repo with large binary files and case-specific geometry.
 
@@ -314,7 +340,7 @@ You should see `motorBike` listed.
 
 > **Note:** This template was built and tuned for a specific STEM car geometry. Read **Section 5d.5** before running your first simulation — you will likely need to adjust the domain size, refinement box positions, and reference values for your car. The template is intentionally kept out of this git repository — do not commit it.
 
-### 2h. Create an AMI from cfd-1
+### 2j. Create an AMI from cfd-1
 
 1. EC2 console → select `cfd-1` → **Actions** → **Image and templates** → **Create image**
 2. Image name: `openfoam-cfd-base`
@@ -322,7 +348,7 @@ You should see `motorBike` listed.
 
 Wait until AMI status shows **available** (EC2 → AMIs). Takes 5–15 minutes.
 
-### 2i. Launch the instance pool
+### 2k. Launch the instance pool
 
 Launch 3–5 instances from the AMI (one per team member who might run simultaneous simulations).
 
@@ -331,7 +357,7 @@ For each pool instance (`cfd-2`, `cfd-3`, etc.):
 1. EC2 → **Launch instances**
 2. **Name**: `cfd-2` (increment for each)
 3. **AMI**: **My AMIs** → `openfoam-cfd-base`
-4. **Instance type**: `c7i.2xlarge`
+4. **Instance type**: use the same type you chose in step 2e (`c6g.2xlarge` or `c7g.16xlarge`)
 5. **Key pair**: `cfd-key`
 6. **Network settings**: same security group as `cfd-1`
 7. **Advanced details**: IAM profile = `openfoam-ec2-role`, Tag = `ManagedBy = openfoam-stemracing`
